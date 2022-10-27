@@ -7,6 +7,7 @@ import configparser
 from pathlib import Path
 import json
 from Arm_Lib import Arm_Device
+import logging
 
 home_dir = str(Path.home())
 
@@ -31,6 +32,9 @@ received_all_event = threading.Event()
 
 # Get DOFBOT object
 Arm = Arm_Device()
+
+# Arm lock/unlock state.
+arm_state = False # By default arm is in lock state
 
 # Move arm
 def actuate_arm(payload):
@@ -266,8 +270,25 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
         received_all_event.set()
 
     payload = json.loads(payload.decode('UTF-8')) # payload comes with b' prepended; converting to UTF-8 string and creating a json object
+    print(payload)
+    iot_message_type = payload.get('type') # from Leap or from API
+    logging.info('Message received is of type: ' + iot_message_type)
 
-    actuate_arm(payload)
+    if(iot_message_type == "API"):
+        global arm_state
+        state = payload.get('state') # LOCK or UNLOCK
+        if(state == "UNLOCK"):
+            logging.info("Unlocking the arm")
+            arm_state = True
+        elif(state == "LOCK"):
+            arm_state = False
+            logging.info("Locking the arm")
+
+    if (iot_message_type == "LEAP"):
+        if(arm_state):
+            actuate_arm(payload)
+        else:
+            logging.info("Arm is locked")
 
 if __name__ == '__main__':
     # Spin up resources
