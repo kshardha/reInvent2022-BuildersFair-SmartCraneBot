@@ -62,7 +62,8 @@ def lambda_handler(event, context):
         
         step_function_client = boto3.client('stepfunctions')
         response = step_function_client.start_execution(
-            stateMachineArn=step_function_parameter_value
+            stateMachineArn=step_function_parameter_value,
+            input=json.dumps({'step_function_input': { 'session_id': random_session_id, 'table_name':leaderboard_ddb_table }})
         )
         print(response)
         
