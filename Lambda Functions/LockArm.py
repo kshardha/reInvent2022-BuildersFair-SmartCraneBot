@@ -2,9 +2,9 @@ import boto3
 import json
 from datetime import datetime
 
-iot_client = boto3.client('iot-data')
+iot_data_client = boto3.client('iot-data')
+iot_client = boto3.client('iot')
 dynamodb = boto3.client('dynamodb')
-iot_topic_name = ""
 
 def lambda_handler(event, context):
     print(event)
@@ -22,7 +22,7 @@ def lambda_handler(event, context):
     iot_topic_name_parameter_value = str(iot_topic_name_parameter.get("Parameter").get("Value"))
     print("IoT Topic Name: " + iot_topic_name_parameter_value)
 
-    response = iot_client.publish(
+    response = iot_data_client.publish(
         topic=iot_topic_name_parameter_value,
         qos=1,
         payload=json.dumps(
@@ -42,6 +42,19 @@ def lambda_handler(event, context):
         AttributeUpdates={
             'game_end_time': {'Value': {'S': datetime.now().isoformat()}}
         }
+    )
+    
+    print(response)
+    
+    #Disable Image Capture IoT rule for ML process
+    iot_rule_name_parameter = ps_client.get_parameter(
+        Name='IoT_Rule_Name_for_Image_Detection'
+    )
+    iot_rule_name_parameter_value = str(iot_rule_name_parameter.get("Parameter").get("Value"))
+    print("IoT Rule Name: " + iot_rule_name_parameter_value)
+
+    response = iot_client.disable_topic_rule(
+        ruleName=iot_rule_name_parameter_value
     )
     
     print(response)
