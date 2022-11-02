@@ -32,9 +32,9 @@ class DecimalEncoder(json.JSONEncoder):
 # Analyzes current frame and determine whether a goal was detected or not. Also identifies if the shot attempts counts toward the score based on shot tiering parameters 
 # If dynamodb_client is past the dynamo db game_tracking table is updated with the new information from the frame
 # Returns first detected shot tier 
-def analyze_shot_frame(game_id, shot_attempt_id, detection_data, game_stats_data={}, dynamodb_resource=None, parameter_store=None):
+def analyze_shot_frame(game_id, shot_attempt_id, detection_data, game_stats_data={}, dynamodb_resource=None):
     ball_bounding_box = {}
-    image_dimensions = param.get_image_dimensions(parameter_store)
+    image_dimensions = param.get_image_dimensions()
     w = image_dimensions['w']
     h = image_dimensions['h']
 
@@ -70,7 +70,7 @@ def analyze_shot_frame(game_id, shot_attempt_id, detection_data, game_stats_data
         detected_tier = None
         for tier in SHOT_TIERS:
             tier_index = SHOT_TIERS.index(tier)
-            shot_tier_bounding_box = param.get_shot_tier_bounding_box(tier, parameter_store)
+            shot_tier_bounding_box = param.get_shot_tier_bounding_box(tier)
             res = get_intersection_pct(shot_tier_bounding_box, ball_bounding_box, detection_data['image_width'], detection_data['image_height'])
             if res != 0.0:
                 intersection_area_pct = res['iop']
