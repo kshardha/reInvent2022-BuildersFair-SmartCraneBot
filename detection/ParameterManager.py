@@ -3,24 +3,31 @@ import json
 
 
 GOAL_BOUNDING_BOX='goal_bounding_box'
-TIER1_BOUNDING_BOX='tier2_bounding_box'
-TIER2_BOUNDING_BOX='tier1_bounding_box'
+TIER1_BOUNDING_BOX='tier1_bounding_box'
+TIER2_BOUNDING_BOX='tier2_bounding_box'
 IMAGE_DIMENSIONS='image_dimensions'
 
-#TODO Cache values
+local_cache = {}
 
-def get_shot_tier_bounding_box(tier, ssm):
-    if tier == '1':
-        return get_json_param(TIER1_BOUNDING_BOX, ssm)
-    elif tier == '2':
-        return get_json_param(TIER2_BOUNDING_BOX, ssm)
-    elif tier == 'GOAL':
-        return get_json_param(GOAL_BOUNDING_BOX, ssm)
+ssm = boto3.client('ssm')
 
-def get_image_dimensions(ssm):
-    return get_json_param(IMAGE_DIMENSIONS, ssm)
+def get_shot_tier_bounding_box(tier):
+    if 'tier_'+tier not in local_cache:    
+        if tier == '1':
+            local_cache['tier_'+tier] = get_json_param(TIER1_BOUNDING_BOX)
+        elif tier == '2':
+            local_cache['tier_'+tier] = get_json_param(TIER2_BOUNDING_BOX)
+        elif tier == 'GOAL':
+            local_cache['tier_'+tier] = get_json_param(GOAL_BOUNDING_BOX)
+    return local_cache['tier_'+tier]
+    
 
-def get_json_param(param_name, ssm):
+def get_image_dimensions():
+    if 'image_dimensions' not in local_cache:
+        local_cache['image_dimensions'] = get_json_param(IMAGE_DIMENSIONS)
+    return local_cache['image_dimensions']
+
+def get_json_param(param_name):
     parameter = ssm.get_parameter(Name=param_name)
     return json.loads(str(parameter['Parameter']['Value']))
 

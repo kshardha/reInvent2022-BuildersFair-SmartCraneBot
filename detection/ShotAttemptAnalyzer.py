@@ -4,11 +4,30 @@ from datetime import datetime
 from boto3.dynamodb.conditions import Key
 from decimal import Decimal
 import detection.ParameterManager as param
+import os
+from math import ceil
 
 SHOT_TRACKING_TABLE_NAME = 'game_stats'
 SHOT_TIERS = ['GOAL', '2', '1']
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 AREA_INTERSECTION_THRESHOLDS = {'GOAL':0.20, '1': 0.1, '2': 0.1}
+
+GAME_STATS_TOPIC_ARN = os.environ['GAME_STATS_TOPIC_ARN']
+
+sns_client = boto3.client('sns')
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        try:
+            if isinstance(o, Decimal):
+                # wanted a simple yield str(o) in the next line,
+                # but that would mean a yield on the line with super(...),
+                # which wouldn't work (see my comment below), so...
+                return (str(o) for o in [o])
+            return super(DecimalEncoder, self).default(o)
+        except:
+            pass
+        return ''
 
 # Analyzes current frame and determine whether a goal was detected or not. Also identifies if the shot attempts counts toward the score based on shot tiering parameters 
 # If dynamodb_client is past the dynamo db game_tracking table is updated with the new information from the frame
@@ -60,6 +79,11 @@ def analyze_shot_frame(game_id, shot_attempt_id, detection_data, game_stats_data
                     detected_tier = tier
                     # shot attempt tier dectected
                     shot_record = update_shot_attempt(game_id, shot_attempt_id, tier, distance_to_goal, detection_data, game_stats_data)
+                    if shot_record['notification_status'] == 'Pending' and sns_client is not None:
+                        json_obj = {'default': json.dumps(shot_record, cls=DecimalEncoder)}
+                        response = sns_client.publish(TargetArn=GAME_STATS_TOPIC_ARN, Message=json.dumps(json_obj), MessageStructure='json')
+                        if response is not None and 'MessageId' in response:
+                            shot_record['notification_status'] = 'Sent'
                     if table is not None:
                         table.put_item(Item = shot_record)
                 break
@@ -86,15 +110,17 @@ def update_shot_attempt(game_id, shot_attempt_id, tier, distance_to_goal, detect
             shortest_distance_to_target = shot_record['shortest_distance_to_target']
             if distance_to_goal<shortest_distance_to_target:
                 shot_record['shortest_distance_to_goal'] = distance_to_goal
+                shot_record['notification_status'] = 'Pending'
         else:
             shot_record['shortest_distance_to_goal'] = distance_to_goal
+            shot_record['notification_status'] = 'Pending'
 
         duration = (current_end_time - current_start_time).total_seconds()
         frame_list = shot_record['frame_list']
         frame_list.append(detection_data['item_counter'])
         shot_record['frame_list'] = frame_list
         shot_record['frame_count'] = len(frame_list)
-        shot_record['duration_sec']  = Decimal(str(duration))
+        shot_record['duration_sec']  = ceil(duration)
 
         #TODO check if shot tier pre-req is met (duration, frame count) and flag accordingly
         #shot_record['notification_sent'] = 
@@ -109,8 +135,8 @@ def update_shot_attempt(game_id, shot_attempt_id, tier, distance_to_goal, detect
         shot_record['start_time'] = detection_data['image_time']
         shot_record['end_time'] = detection_data['image_time']
         shot_record['duration_sec']  = 0
-        shot_record['notification_sent']  = 0
         shot_record['shortest_distance_to_goal'] = distance_to_goal
+        shot_record['notification_status'] = 'Pending'
         game_stats_data[key] = shot_record
     return shot_record
 
