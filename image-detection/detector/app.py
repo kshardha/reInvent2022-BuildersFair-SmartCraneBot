@@ -60,7 +60,10 @@ def create_detection_item(event, imageTime, detection):
             'score': score,
             "x0": x0, "y0": y0,"x1": x1, "y1": y1,
             "item_counter": event['counter'],
-            "gameid": event['gameid']
+            "gameid": event['gameid'],
+            "image_width":image_dimensions['w'],
+            "image_height":image_dimensions['h']
+            
         }
     return item
     #print(response)

@@ -72,11 +72,12 @@ def analyze_shot_frame(game_id, shot_attempt_id, detection_data, game_stats_data
         for tier in SHOT_TIERS:
             tier_index = SHOT_TIERS.index(tier)
             shot_tier_bounding_box = param.get_shot_tier_bounding_box(tier)
-            print(detection_data)
-            res = get_intersection_pct(shot_tier_bounding_box, ball_bounding_box, w, h)
+            res = get_intersection_pct(shot_tier_bounding_box, ball_bounding_box, detection_data['image_width'], detection_data['image_height'])
             if res != 0.0:
                 intersection_area_pct = res['iop']
                 distance_to_goal = res['distance']
+                #print("Bounding Box Overlap Check Result:", str(res))
+                #print("Detection Data:", str(detection_data))
                 if intersection_area_pct > AREA_INTERSECTION_THRESHOLDS[tier] and (currently_detected_tier_index is None or tier_index < currently_detected_tier_index):
                     detected_tier = tier
                     # shot attempt tier dectected
