@@ -73,7 +73,7 @@ def analyze_shot_frame(game_id, shot_attempt_id, detection_data, game_stats_data
             tier_index = SHOT_TIERS.index(tier)
             shot_tier_bounding_box = param.get_shot_tier_bounding_box(tier)
             print(detection_data)
-            res = get_intersection_pct(shot_tier_bounding_box, ball_bounding_box, detection_data['image_width'], detection_data['image_height'])
+            res = get_intersection_pct(shot_tier_bounding_box, ball_bounding_box, w, h)
             if res != 0.0:
                 intersection_area_pct = res['iop']
                 distance_to_goal = res['distance']
