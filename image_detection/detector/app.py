@@ -80,7 +80,10 @@ def detect_goal(game_id, detection):
     #TODO: shot attempt id to be implemented
     #print (detection)
     print("calling analyze_shot")
-    analyze_shot_frame(game_id=game_id, shot_attempt_id='999', detection_data=detection, dynamodb_resource=boto3.resource('dynamodb'))
+    dynamodb_resource=boto3.resource('dynamodb')
+    shot_detect = detect_start_of_shot(game_id=game_id, detection_data=detection, dynamodb_resource=dynamodb_resource)
+    if 'current_shot_id' in shot_detect:
+        analyze_shot_frame(game_id=game_id, shot_attempt_id=shot_detect['current_shot_id'], detection_data=detection, dynamodb_resource=boto3.resource('dynamodb'))
 
 def do_additional_analytics(detection):
     #Narcisse to implement

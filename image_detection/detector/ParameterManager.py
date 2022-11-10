@@ -1,18 +1,22 @@
 import boto3
 import json
 
-
-GOAL_BOUNDING_BOX='goal_bounding_box'
-TIER1_BOUNDING_BOX='tier1_bounding_box'
-TIER2_BOUNDING_BOX='tier2_bounding_box'
-IMAGE_DIMENSIONS='image_dimensions'
+GOAL_BOUNDING_BOX='goal_bounding_box:2'
+TIER1_BOUNDING_BOX='tier1_bounding_box:2'
+TIER2_BOUNDING_BOX='tier2_bounding_box:2'
+IMAGE_DIMENSIONS='image_dimensions:2'
+SHOT_START_Y_THRESHOLD='shot_start_y_threshold'
 
 local_cache = {}
 
 ssm = boto3.client('ssm')
 
+def set_ssm(ssm_client):
+    global ssm
+    ssm = ssm_client
+
 def get_shot_tier_bounding_box(tier):
-    if 'tier_'+tier not in local_cache:    
+    if 'tier_'+tier not in local_cache:
         if tier == '1':
             local_cache['tier_'+tier] = get_json_param(TIER1_BOUNDING_BOX)
         elif tier == '2':
@@ -27,9 +31,18 @@ def get_image_dimensions():
         local_cache['image_dimensions'] = get_json_param(IMAGE_DIMENSIONS)
     return local_cache['image_dimensions']
 
+def get_shot_start_y_threshold():
+    if 'shot_start_y_threshold' not in local_cache:
+        local_cache['shot_start_y_threshold'] = get_string_param(SHOT_START_Y_THRESHOLD)
+    return local_cache['shot_start_y_threshold']
+
 def get_json_param(param_name):
     parameter = ssm.get_parameter(Name=param_name)
     return json.loads(str(parameter['Parameter']['Value']))
+
+def get_string_param(param_name):
+    parameter = ssm.get_parameter(Name=param_name)
+    return str(parameter['Parameter']['Value'])
 
 #def get_goal_bounding_box():
 #    return {'x1': 150, 'y1': 9, 'x2': 200, 'y2': 36}

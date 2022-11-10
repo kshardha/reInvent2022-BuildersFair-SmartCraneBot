@@ -9,8 +9,9 @@ import boto3
 from decimal import *
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from detection.ShotAttemptAnalyzer import analyze_shot_frame
-from detection.ParameterManager import *
+
+from image_detection.detector.ShotAttemptAnalyzer import analyze_shot_frame, detect_start_of_shot, set_sns
+from image_detection.detector.ParameterManager import *
 
 REGION='us-west-2'
 ACCESS_KEY = os.environ['AWS_ACCESS_KEY_ID']
@@ -24,7 +25,9 @@ session = boto3.Session(
                 region_name=REGION
             )
 
-           
+set_ssm(session.client('ssm'))
+set_sns(session.client('sns'))
+
 class DecimalEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, Decimal):
@@ -43,7 +46,8 @@ class TestShotAnalysis(unittest.TestCase):
             with open('tests/data/db_export_v0.json', 'r') as jsf:
                 fileReader = json.load(jsf)
                 rows = fileReader['Items']
-                for row in rows:
+                sorted_rows = sorted(rows, key=lambda d: int(d['item_counter']['N'])) 
+                for row in sorted_rows:
                     key = row['id']
                     row['id'] = row['id']['S']
                     row['ball_found'] = row['ball_found']['N']
@@ -59,7 +63,7 @@ class TestShotAnalysis(unittest.TestCase):
 
                     #data[key] = rows
                     if row['ball_found'] == '1':
-                        analyze_shot_frame(row['gameid'], '999', row, output_data, parameter_store=session.client('ssm'))
+                        analyze_shot_frame(row['gameid'], '999', row, output_data)
             
             #with open('tests/data/output_results.json', 'w', encoding='utf-8') as jsonf:
             #    jsonf.write(json.dumps(output_data, indent=4, cls=DecimalEncoder))
@@ -76,7 +80,8 @@ class TestShotAnalysis(unittest.TestCase):
             with open('tests/data/db_export_v0.json', 'r') as jsf:
                 fileReader = json.load(jsf)
                 rows = fileReader['Items']
-                for row in rows:
+                sorted_rows = sorted(rows, key=lambda d: int(d['item_counter']['N'])) 
+                for row in sorted_rows:
                     key = row['id']
                     row['id'] = row['id']['S']
                     row['ball_found'] = row['ball_found']['N']
@@ -92,14 +97,15 @@ class TestShotAnalysis(unittest.TestCase):
 
                     #data[key] = rows
                     if row['ball_found'] == '1':
-                        analyze_shot_frame(row['gameid'], '999', row, output_data, dynamodb_resource=dyn_resource)
+                        shot_detect = detect_start_of_shot(row['gameid'], row, dynamodb_resource=dyn_resource)
+                        if 'current_shot_id' in shot_detect:
+                            analyze_shot_frame(row['gameid'], shot_detect['current_shot_id'], row, output_data, dynamodb_resource=dyn_resource)
             
             #with open('tests/data/output_results.json', 'w', encoding='utf-8') as jsonf:
             #    jsonf.write(json.dumps(output_data, indent=4, cls=DecimalEncoder))
         except Exception as e:
             print(e)
             self.fail("Exeption occured: " + repr(e))
-
 
 if __name__ == '__main__':
     unittest.main()
