@@ -1,6 +1,7 @@
 import json
 import boto3
 import random, string
+import urllib3
 
 random_session_id = ""
 game_duration_value = ""
@@ -42,8 +43,12 @@ def lambda_handler(event, context):
         # Generate Session ID and store it in the table
         random_session_id = ''.join(random.choices(string.ascii_letters + string.digits, k=25))
         print(random_session_id)
+        http = urllib3.PoolManager()
+        resp = http.request("GET", "http://reinvent2022-fargate-service-lb-715298439.us-west-2.elb.amazonaws.com/")
+        player_assigned_name = resp.data.decode('utf8', 'strict')
+        print("Assigned name to the player :" + player_assigned_name)
         dynamodb_client = boto3.client('dynamodb')
-        dynamodb_client.put_item(TableName=leaderboard_ddb_table, Item={'session-id':{'S':random_session_id}, 'msg':{'S': event_payload}})
+        dynamodb_client.put_item(TableName=leaderboard_ddb_table, Item={'session-id':{'S':random_session_id}, 'assigned-name':{'S':player_assigned_name}, 'msg':{'S': event_payload}})
         
         # Get GameDuration value from Parameter Store
         game_duration_parameter = ps_client.get_parameter(
