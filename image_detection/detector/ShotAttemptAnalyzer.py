@@ -3,10 +3,11 @@ import boto3
 from datetime import datetime
 from boto3.dynamodb.conditions import Key
 from decimal import Decimal
-import ParameterManager as param
+from .ParameterManager import get_shot_tier_bounding_box, get_image_dimensions, get_shot_start_y_threshold
 import os
 from math import ceil
 import traceback
+import uuid
 
 SHOT_TRACKING_TABLE_NAME = 'game_stats'
 SHOT_TIERS = ['GOAL', '2', '1']
@@ -16,6 +17,10 @@ AREA_INTERSECTION_THRESHOLDS = {'GOAL':0.20, '1': 0.1, '2': 0.1}
 GAME_STATS_TOPIC_ARN = os.environ['GAME_STATS_TOPIC_ARN']
 
 sns_client = boto3.client('sns')
+
+def set_sns(sns):
+    global sns_client
+    sns_client = sns
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, o):
@@ -35,7 +40,7 @@ class DecimalEncoder(json.JSONEncoder):
 # Returns first detected shot tier 
 def analyze_shot_frame(game_id, shot_attempt_id, detection_data, game_stats_data={}, dynamodb_resource=None):
     ball_bounding_box = {}
-    image_dimensions = param.get_image_dimensions()
+    image_dimensions = get_image_dimensions()
     w = image_dimensions['w']
     h = image_dimensions['h']
 
@@ -71,19 +76,20 @@ def analyze_shot_frame(game_id, shot_attempt_id, detection_data, game_stats_data
         detected_tier = None
         for tier in SHOT_TIERS:
             tier_index = SHOT_TIERS.index(tier)
-            shot_tier_bounding_box = param.get_shot_tier_bounding_box(tier)
-            print(detection_data)
+            shot_tier_bounding_box = get_shot_tier_bounding_box(tier)
             res = get_intersection_pct(shot_tier_bounding_box, ball_bounding_box, detection_data['image_width'], detection_data['image_height'])
             if res != 0.0:
                 intersection_area_pct = res['iop']
                 distance_to_goal = res['distance']
+                #print("Bounding Box Overlap Check Result:", str(res))
+                #print("Detection Data:", str(detection_data))
                 if intersection_area_pct > AREA_INTERSECTION_THRESHOLDS[tier] and (currently_detected_tier_index is None or tier_index < currently_detected_tier_index):
                     detected_tier = tier
                     # shot attempt tier dectected
                     shot_record = update_shot_attempt(game_id, shot_attempt_id, tier, distance_to_goal, detection_data, game_stats_data)
                     if shot_record['notification_status'] == 'Pending' and sns_client is not None:
                         json_obj = {'default': json.dumps(shot_record, cls=DecimalEncoder)}
-                        response = sns_client.publish(TargetArn=GAME_STATS_TOPIC_ARN, Message=json.dumps(json_obj), MessageStructure='json')
+                        response = sns_client.publish(TopicArn=GAME_STATS_TOPIC_ARN, Message=json.dumps(json_obj), MessageStructure='json')
                         if response is not None and 'MessageId' in response:
                             shot_record['notification_status'] = 'Sent'
                     if table is not None:
@@ -226,4 +232,65 @@ def get_intersection_pct(shot_tier_bounding_box, ball_bounding_box, w, h):
 def get_shot_attempt_key(game_id, shot_attempt_id, tier):
     return "/".join([str(game_id), str(shot_attempt_id), str(tier)])
 
+def detect_start_of_shot(game_id, detection_data, dynamodb_resource=None):
+    
+    ball_bounding_box = {}
+    image_dimensions = get_image_dimensions()
+    w = image_dimensions['w']
+    h = image_dimensions['h']
 
+    ball_bounding_box['x1'] = int(float(detection_data['x0']) * w)
+    ball_bounding_box['y1'] = int(float(detection_data['y0']) * h)
+    ball_bounding_box['x2'] = int(float(detection_data['x1']) * w)
+    ball_bounding_box['y2'] = int(float(detection_data['y1']) * h)
+
+    shot_start_y_threshold = Decimal(get_shot_start_y_threshold()) #Ignore anything below a certain y position
+    shot_start_y_coord =  h-int((shot_start_y_threshold * h))
+
+    current_shot_tracking_data = None
+    table = None
+
+    if dynamodb_resource is not None:
+        table = dynamodb_resource.Table(SHOT_TRACKING_TABLE_NAME)
+    response = table.query(KeyConditionExpression=(Key('game_id').eq(str(game_id)) & Key('shot_attempt_id').eq(str('for-shot-detection-only'))))
+    if 'Items' in response and len(response['Items'])>0:
+        items = response['Items']
+        current_shot_tracking_data = items[0]
+
+    if current_shot_tracking_data == None:
+        current_shot_tracking_data = {}
+        current_shot_tracking_data['game_id'] = game_id
+        current_shot_tracking_data['shot_attempt_id'] = 'for-shot-detection-only'
+        current_shot_tracking_data['previous_position'] = ball_bounding_box
+        current_shot_tracking_data['start_time'] = detection_data['image_time']
+        current_shot_tracking_data['position_status'] = 'Initialized'
+        current_shot_tracking_data['shot_detection_status'] = 'Initialized'
+        current_shot_tracking_data['previous_position'] = ball_bounding_box
+    else:
+        previous_position = current_shot_tracking_data['previous_position']
+        if (previous_position['y1']>shot_start_y_coord and ball_bounding_box['y1']<shot_start_y_coord) or \
+            (current_shot_tracking_data['position_status'] in ('BelowThreshold', 'Initialized') and ball_bounding_box['y1']<shot_start_y_coord):
+            current_shot_tracking_data['shot_detection_status'] = 'NewShotDetected'
+            current_shot_tracking_data['shot_start_position'] = ball_bounding_box
+            current_shot_tracking_data['position_status'] = 'AboveThreshold'
+            current_shot_tracking_data['shot_starting_frame'] = detection_data['item_counter']
+            if 'current_shot_id' in current_shot_tracking_data:
+                current_shot_id = current_shot_tracking_data['current_shot_id']
+                current_shot_tracking_data['previous_shot_id'] = current_shot_id
+                current_shot_tracking_data['start_time'] = detection_data['image_time']
+                current_shot_tracking_data['shot_starting_frame'] = detection_data['item_counter']
+            
+            current_shot_tracking_data['current_shot_id'] = str(uuid.uuid4())
+            current_shot_tracking_data['previous_position'] = ball_bounding_box
+        else:
+            if previous_position['y1']>=shot_start_y_coord and ball_bounding_box['y1']>=shot_start_y_coord:
+                current_shot_tracking_data['position_status'] = 'BelowThreshold'
+            current_shot_tracking_data['previous_position'] = ball_bounding_box
+            
+
+    if table is not None:
+        table.put_item(Item = current_shot_tracking_data)
+    return current_shot_tracking_data
+        
+
+    

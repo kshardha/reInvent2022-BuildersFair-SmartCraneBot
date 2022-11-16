@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  score-keeper
+
+  Sample SAM Template for score-keeper
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 10
+
+
+Resources:
+  
+  GameStatsProcessorFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: stats-processor/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Policies:
+        - AmazonDynamoDBFullAccess
+      Environment:
+        Variables:
+          TIER1_POINTS: 25
+          TIER2_POINTS: 10
+          GOAL_POINTS: 50
+  
+  GameStatsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub 'cranebot22-game-stats-topic'
+      TopicName: !Sub 'cranebot22-game-stats-topic'
+      Subscription:
+        - Protocol: lambda
+          Endpoint: !GetAtt GameStatsProcessorFunction.Arn
+    DependsOn: GameStatsProcessorFunction
+
+  GameStatsFunctionInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref GameStatsProcessorFunction
+      Principal: sns.amazonaws.com 
+
+  
+  GameStatsTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      Topics:
+        - !Ref GameStatsTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'sns:Publish'
+            Resource: !Ref GameStatsTopic
+            Principal:
+              AWS: '*'
+            Condition:
+              ArnLike:
+                AWS:SourceArn: !Sub 'arn:aws:*:*:${AWS::AccountId}:*'
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  GameStatsProcessor:
+    Description: "GameStatsProcessor Lambda Function ARN"
+    Value: !GetAtt GameStatsProcessorFunction.Arn
+  GameStatsProcessorFunctionIamRole:
+    Description: "Implicit IAM Role created for GameStatsProcessor function"
+    Value: !GetAtt GameStatsProcessorFunctionRole.Arn
