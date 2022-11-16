@@ -37,10 +37,10 @@ def lambda_handler(event, context):
     response = dynamodb.update_item(
         TableName=ddb_table_name,
         Key={
-            'session-id': {'S': session_id}
+            'sessionID': {'S': session_id}
         },
         AttributeUpdates={
-            'game_end_time': {'Value': {'S': datetime.now().isoformat()}}
+            'gameEndTime': {'Value': {'S': datetime.now().isoformat()}}
         }
     )
     

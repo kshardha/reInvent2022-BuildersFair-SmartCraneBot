@@ -48,7 +48,7 @@ def lambda_handler(event, context):
         player_assigned_name = resp.data.decode('utf8', 'strict')
         print("Assigned name to the player :" + player_assigned_name)
         dynamodb_client = boto3.client('dynamodb')
-        dynamodb_client.put_item(TableName=leaderboard_ddb_table, Item={'session-id':{'S':random_session_id}, 'assigned-name':{'S':player_assigned_name}, 'msg':{'S': event_payload}})
+        dynamodb_client.put_item(TableName=leaderboard_ddb_table, Item={'sessionID':{'S':random_session_id}, 'assignedName':{'S':player_assigned_name}, 'msg':{'S': event_payload}})
         
         # Get GameDuration value from Parameter Store
         game_duration_parameter = ps_client.get_parameter(
@@ -83,8 +83,8 @@ def lambda_handler(event, context):
         'statusCode': 200,
         'body': response_body,
         'sentiment': sentiment,
-        'game_duration': game_duration_value,
-        'session_id': random_session_id,
-        'player_assigned_name': player_assigned_name
+        'gameDuration': game_duration_value,
+        'sessionID': random_session_id,
+        'assignedName': player_assigned_name
         
     }
