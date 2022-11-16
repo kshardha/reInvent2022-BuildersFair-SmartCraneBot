@@ -10,7 +10,11 @@ mainNameList = ['Tom Cruise', 'Brad Pitt','Michael Jordan', 'Tom Hanks', 'Johnny
 'Natalie Portman','Angelina Jolie', 'LeBron James', 'Scarlett Johansson', 'Anne Hathaway', 'Jessica Alba', 'Keira Knightley',
 'Julia Roberts','Tom Brady', 'Keanu Reeves', 'Megan Fox', 'Steffi Graf', 'Robin Williams', 'Zach Galifianakis', 'Sandra Bullock',
 'Jennifer Aniston', 'Emma Stone', 'Rachel McAdams', 'Roger Federer', 'Michael Phelps', 'Michael Schumacher', 'Tiger Woods', 'Muhammad Ali',
-'Usain Bolt', 'Babe Ruth','Kobe Bryant', 'Peyton Manning','Billie Jean King']
+'Usain Bolt', 'Babe Ruth','Kobe Bryant', 'Peyton Manning','Billie Jean King', 'The Batman', 'Vito Corleone', 'Darth Vader', 'Indiana Jones',
+'Gandalf', 'Han Solo', 'The Terminator', 'Luke Skywalker', 'Sarah Connor', 'Buzz Lightyear', 'Godfather' ,'Forest Gump','Rocky Balboa', 'Jason Bourne',
+'Jack Sparrow', 'John Wick', 'Saul Goodman' , 'Sheldon Cooper', 'Lucifer Morningstar', 'Harry Potter', 'Super-Man' ,'Spider-Man', 'Doctor Strange',
+'Tony Montana', 'Sherlock Holmes', 'Neo', 'Optimus Prime', 'Inspector Clouseau', 'Groot', 'Ethan Hunt', 'Captain Kirk', 'Ace Ventura',
+'Captain America','Loki', 'Thor', 'Iron Man', 'The Dude', 'James Bond']
 
 nameList1 = mainNameList[:]
 nameList2 = []
