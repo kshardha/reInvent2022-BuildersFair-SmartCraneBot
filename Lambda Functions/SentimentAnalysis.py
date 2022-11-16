@@ -84,6 +84,7 @@ def lambda_handler(event, context):
         'body': response_body,
         'sentiment': sentiment,
         'game_duration': game_duration_value,
-        'session_id': random_session_id
+        'session_id': random_session_id,
+        'player_assigned_name': player_assigned_name
         
     }
