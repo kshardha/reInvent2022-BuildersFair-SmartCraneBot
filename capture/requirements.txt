@@ -1,6 +1,6 @@
 uuid
 requests
 opencv-python
-awscrt
+awscrt==0.14.7
 awsiotsdk
 boto3
