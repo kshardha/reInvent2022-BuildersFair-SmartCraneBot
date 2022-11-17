@@ -5,8 +5,12 @@ from awsiot import mqtt_connection_builder
 
 class ImageMqttSender:
 
-    def __init__(self,topic):
+    def __init__(self,topic,endpoint,ca_file,cert_file,key_file):
         self.topic = topic
+        self.endpoint=endpoint
+        self.ca_file=ca_file
+        self.cert_file=cert_file
+        self.key_file=key_file
         self.init_mqtt()
 
     # Callback when connection is accidentally lost.
@@ -53,14 +57,14 @@ class ImageMqttSender:
         return mqtt_connection
 
     def init_mqtt(self):
-        cmdUtils = command_line_utils.CommandLineUtils("PubSub - Send and recieve messages through an MQTT connection.")
+        cmdUtils = command_line_utils.CommandLineUtils(self.endpoint, self.ca_file, self.cert_file, self.key_file, "PubSub - Send and recieve messages through an MQTT connection.")
         cmdUtils.add_common_mqtt_commands()
         cmdUtils.add_common_topic_message_commands()
         cmdUtils.add_common_proxy_commands()
         cmdUtils.add_common_logging_commands()
 
-        cmdUtils.register_command("key", "<path>", "Path to your key in PEM format.", True, str)
-        cmdUtils.register_command("cert", "<path>", "Path to your client certificate in PEM format.", True, str)
+        #cmdUtils.register_command("key", "<path>", "Path to your key in PEM format.", True, str)
+        #cmdUtils.register_command("cert", "<path>", "Path to your client certificate in PEM format.", True, str)
         cmdUtils.register_command("client_id", "<str>",
                                   "Client ID to use for MQTT connection (optional, default='test-*').",
                                   default="jitens-laptop")

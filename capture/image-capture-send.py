@@ -13,12 +13,13 @@ import image_mqtt_sender;
 
 
 #####Supply Values for these##########
-CA_FILE="c:\\test\\cranebot\\iot-certs\\AmazonRootCA1.pem"
-CERT_FILE="c:\\test\\cranebot\\iot-certs\\dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-certificate.pem.crt"
-KEY_FILE="c:\\test\\cranebot\\iot-certs\\dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-private.pem.key"
+CA_FILE="./iot-certs/AmazonRootCA1.pem"
+CERT_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-certificate.pem.crt"
+KEY_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-private.pem.key"
 AWS_ACCESS_KEY_ID="<put values here>"
 AWS_SECRET_ACCESS_KEY="<put values here>"
 AWS_SESSION_TOKEN="<put values here>"
+
 AWS_REGION_NAME='us-west-2'
 WEBCAM_ID=0
 
@@ -151,7 +152,7 @@ def capture_images(queue):
 
 
 ##################
-image_mqtt_sender_client = image_mqtt_sender.ImageMqttSender(MQTT_TOPIC)
+image_mqtt_sender_client = image_mqtt_sender.ImageMqttSender(MQTT_TOPIC,IOT_ENDPOINT,CA_FILE,CERT_FILE,KEY_FILE)
 
 image_queue = Queue()
 # start the consumer(s)

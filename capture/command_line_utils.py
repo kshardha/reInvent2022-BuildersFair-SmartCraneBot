@@ -6,11 +6,14 @@ from awscrt import io, http, auth
 from awsiot import mqtt_connection_builder
 
 class CommandLineUtils:
-    def __init__(self, description) -> None:
+    def __init__(self, endpoint, ca_file,cert_file,key_file, description) -> None:
         self.parser = argparse.ArgumentParser(description="Send and receive messages through and MQTT connection.")
         self.commands = {}
         self.parsed_commands = None
-
+        self.endpoint = endpoint
+        self.ca_file=ca_file
+        self.cert_file=cert_file
+        self.key_file=key_file
     def register_command(self, command_name, example_input, help_output, required=False, type=None, default=None, choices=None, action=None):
         self.commands[command_name] = {
             "name":command_name,
@@ -63,8 +66,9 @@ class CommandLineUtils:
                 self.commands[command_name]["action"] = new_action
 
     def add_common_mqtt_commands(self):
-        self.register_command(self.m_cmd_endpoint, "<str>", "The endpoint of the mqtt server not including a port.", True, str)
-        self.register_command(self.m_cmd_ca_file, "<path>", "Path to AmazonRootCA1.pem (optional, system trust store used by default)", False, str)
+        #self.register_command(self.m_cmd_endpoint, "<str>", "The endpoint of the mqtt server not including a port.", True, str)
+        #self.register_command(self.m_cmd_ca_file, "<path>", "Path to AmazonRootCA1.pem (optional, system trust store used by default)", False, str)
+        pass
 
     def add_common_proxy_commands(self):
         self.register_command(self.m_cmd_proxy_host, "<str>", "Host name of the proxy server to connect through (optional)", False, str)
@@ -154,11 +158,11 @@ class CommandLineUtils:
     def build_direct_mqtt_connection(self, on_connection_interrupted, on_connection_resumed):
         proxy_options = self.get_proxy_options_for_mqtt_connection()
         mqtt_connection = mqtt_connection_builder.mtls_from_path(
-            endpoint=self.get_command_required(self.m_cmd_endpoint),
+            endpoint= self.endpoint , #self.get_command_required(self.m_cmd_endpoint),
             port=self.get_command_required("port"),
-            cert_filepath=self.get_command_required(self.m_cmd_cert_file),
-            pri_key_filepath=self.get_command_required(self.m_cmd_key_file),
-            ca_filepath=self.get_command(self.m_cmd_ca_file),
+            cert_filepath=self.cert_file, #self.get_command_required(self.m_cmd_cert_file),
+            pri_key_filepath=self.key_file, #self.get_command_required(self.m_cmd_key_file),
+            ca_filepath=self.ca_file, #self.get_command(self.m_cmd_ca_file),
             on_connection_interrupted=on_connection_interrupted,
             on_connection_resumed=on_connection_resumed,
             client_id=self.get_command_required("client_id"),
