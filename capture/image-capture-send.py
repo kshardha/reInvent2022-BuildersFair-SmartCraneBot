@@ -16,14 +16,19 @@ import image_mqtt_sender;
 AWS_ACCESS_KEY_ID="<put values here>"
 AWS_SECRET_ACCESS_KEY="<put values here>"
 AWS_SESSION_TOKEN="<put values here>"
+BALL_MIN = np.array([10, 20, 20]) # hsv color for ball min - need to tweak this for the ball color
+BALL_MAX = np.array([25, 255, 255]) #hsv color for ball max - need to tweak this for the ball color
+
 WEBCAM_ID=0 #if you have multiple webcam you may need to change this number.
+
+
+#####Default values for parameters (tweak only if needed)#######
 AWS_REGION_NAME='us-west-2'
 
 CA_FILE="./iot-certs/AmazonRootCA1.pem"
 CERT_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-certificate.pem.crt"
 KEY_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-private.pem.key"
 
-#####Default values for parameters (tweak only if needed)#######
 UPLOAD_BATCH_SIZE=50 # Number of parallel threads to create to upload the images to mqtt
 FRAME_RATE=30 # Approximate capture frame rate
 MQTT_TOPIC="cranebot"
@@ -37,8 +42,6 @@ DETECTION_THRESHOLD=0.3 # Not used for MQTT. Used only for Local call detection.
 
 def process_image(frame, gameid, counter):
     imagehsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    BALL_MIN = np.array([10, 20, 20])
-    BALL_MAX = np.array([25, 255, 255])
 
     # masking the HSV image to get only black colors
     imagemask = cv2.inRange(imagehsv, BALL_MIN, BALL_MAX)
