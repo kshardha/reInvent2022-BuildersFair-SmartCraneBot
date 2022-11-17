@@ -1,1 +1,6 @@
 uuid
+requests
+opencv-python
+awscrt
+awsiotsdk
+boto3
