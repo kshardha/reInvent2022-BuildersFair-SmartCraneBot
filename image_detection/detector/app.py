@@ -103,10 +103,11 @@ def lambda_handler(event, context):
     #print("image:", imageStr)
     imagebytes = base64.b64decode(imageStr)
     detection = locally_call_endpoint(imagebytes)
-    item = create_detection_item(event, timeStr, detection)
-    detect_goal(gameid, item)
-    do_additional_analytics(detection)
-    save_to_dynamodb(item)
+    if detection is not None:
+        item = create_detection_item(event, timeStr, detection)
+        detect_goal(gameid, item)
+        do_additional_analytics(detection)
+        save_to_dynamodb(item)
     return {
         'statusCode': 200,
         'body': json.dumps('Hello from Lambda!')

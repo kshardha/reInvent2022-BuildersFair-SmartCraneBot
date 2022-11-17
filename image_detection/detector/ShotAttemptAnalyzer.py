@@ -3,7 +3,7 @@ import boto3
 from datetime import datetime
 from boto3.dynamodb.conditions import Key
 from decimal import Decimal
-from .ParameterManager import get_shot_tier_bounding_box, get_image_dimensions, get_shot_start_y_threshold
+from ParameterManager import get_shot_tier_bounding_box, get_image_dimensions, get_shot_start_y_threshold
 import os
 from math import ceil
 import traceback
