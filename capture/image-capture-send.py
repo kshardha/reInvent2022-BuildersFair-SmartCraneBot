@@ -12,21 +12,25 @@ import time
 import image_mqtt_sender;
 
 
-UPLOAD_BATCH_SIZE=50
-FRAME_RATE=30
-MQTT_TOPIC="cranebot"
+#####Supply Values for these##########
 CA_FILE="c:\\test\\cranebot\\iot-certs\\AmazonRootCA1.pem"
 CERT_FILE="c:\\test\\cranebot\\iot-certs\\dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-certificate.pem.crt"
 KEY_FILE="c:\\test\\cranebot\\iot-certs\\dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-private.pem.key"
-IOT_ENDPOINT="abpraz52fkm0l-ats.iot.us-west-2.amazonaws.com"
-LOCALLY_CALL_DETECTION=False
-SEND_MQTT_MESSAGE=True
-DETECTION_THRESHOLD=0.3
-
-AWS_ACCESS_KEY_ID="ASIAW3NYPKRB5XW7NPUR"
-AWS_SECRET_ACCESS_KEY="YAzh9mio+GGgr9SrfGBrA+FK8ZihD5cQeU9cXyQQ"
-AWS_SESSION_TOKEN="IQoJb3JpZ2luX2VjEFUaCXVzLWVhc3QtMSJIMEYCIQDg5dcE3fkPFtZwxzkxDCBmbvzKDqahzRKv15w34zWJmwIhAPJdbVmf4rTqpimN3fQT863FvNOSgcSHIVJ5ftS+AyBOKp0CCC0QABoMNDcxMjIyNjcwNDAzIgwZ6Cg06cFHXh/sQGwq+gEHzO6RrlSrqJaaEKzT23OtAdTh1r66s/jsLiqMZz8sQhoBgQUwmzlZ6iw2XHgjrWVPDjvp31L1HveO8nefzAgkYDOKeTLCPXLesC16lIj194WyI3fE608OsH81gKc6j+FDQWIHVctjf8wwFbwMJgGrOSjDkI21Pe8eQtivyupI0cuyeTpdgTzmzkEIUP7wjYOJWhuEcel50ApCIrUcQOhMUxo0Y1h11L6/818P5QNreVstaTINp4MjhY6Unn1sCYWuyMtkNZjjE00/rjtRbhL+wyKuqgPprqXArtvSQj4b71LoBFD64HY7i4np3Q7ALWJPMJPcNw6neBL4MP2yupoGOpwBISkW28ezLH2amWoTmMR+lF9p4RG9p/8qOM7B4iS7c++6QbE4Uu9uzbizBZ0CPvI6vt3u4RkEh4E//SrMFKkIRNbS1doBlrHJ7OAC0/27RqZnZxTMRAZChnmmnfD9jxI9KfKHQx006cbKbi0xTphLhrwf17befwEfYTSyIxhkMhMneyvS0rsRIeChpWS97oh1oFCIFiQutRO4HYrn"
+AWS_ACCESS_KEY_ID="<put values here>"
+AWS_SECRET_ACCESS_KEY="<put values here>"
+AWS_SESSION_TOKEN="<put values here>"
 AWS_REGION_NAME='us-west-2'
+WEBCAM_ID=0
+
+#####Default values for parameters (tweak only if needed)#######
+UPLOAD_BATCH_SIZE=50 # Number of parallel threads to create to upload the images to mqtt
+FRAME_RATE=30 # Approximate capture frame rate
+MQTT_TOPIC="cranebot"
+IOT_ENDPOINT="abpraz52fkm0l-ats.iot.us-west-2.amazonaws.com"
+LOCALLY_CALL_DETECTION=False #For debugging by directly calling the detection endpoint
+SEND_MQTT_MESSAGE=True # Keep this true to send messages to MQTT topic
+DETECTION_THRESHOLD=0.3 # Not used for MQTT. Used only for Local call detection. Dont send images to detection if not meets threshold
+
 
 
 
@@ -112,7 +116,7 @@ def upload_images(queue):
     print('Consumer: Done')
 
 def capture_images(queue):
-    webcam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    webcam = cv2.VideoCapture(WEBCAM_ID, cv2.CAP_DSHOW)
     webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
     webcam.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
     i = 1
@@ -136,8 +140,9 @@ def capture_images(queue):
             queue.put(queueItem)
             print("current queue size", queue.qsize())
             i = i + 1
-            if (i > 300):
-                break
+            ##debugging purpose. stop capture after 300 images.
+            #if (i > 300):
+            #    break
             time.sleep(1/FRAME_RATE)
         except Exception as e:
             print(e)
