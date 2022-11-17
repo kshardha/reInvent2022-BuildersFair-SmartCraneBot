@@ -13,15 +13,15 @@ import image_mqtt_sender;
 
 
 #####Supply Values for these##########
-CA_FILE="./iot-certs/AmazonRootCA1.pem"
-CERT_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-certificate.pem.crt"
-KEY_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-private.pem.key"
 AWS_ACCESS_KEY_ID="<put values here>"
 AWS_SECRET_ACCESS_KEY="<put values here>"
 AWS_SESSION_TOKEN="<put values here>"
-
+WEBCAM_ID=0 #if you have multiple webcam you may need to change this number.
 AWS_REGION_NAME='us-west-2'
-WEBCAM_ID=0
+
+CA_FILE="./iot-certs/AmazonRootCA1.pem"
+CERT_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-certificate.pem.crt"
+KEY_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-private.pem.key"
 
 #####Default values for parameters (tweak only if needed)#######
 UPLOAD_BATCH_SIZE=50 # Number of parallel threads to create to upload the images to mqtt
