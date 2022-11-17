@@ -3,7 +3,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 import os
 
-LEADER_BOARD_TABLE_NAME = 'LeaderBoard'
+LEADER_BOARD_TABLE_NAME = 'Session-ic466rpeprhqno474shb2rlioy-dev'
 
 GOAL_POINTS = os.environ['GOAL_POINTS']
 TIER1_POINTS = os.environ['TIER1_POINTS']
@@ -11,6 +11,10 @@ TIER2_POINTS = os.environ['TIER2_POINTS']
 
 dynamodb_resource = boto3.resource('dynamodb')
 table = dynamodb_resource.Table(LEADER_BOARD_TABLE_NAME)
+ssm = boto3.session.client('ssm')
+
+table_name_parameter = ssm.get_parameter(Name='LeaderBoard_DDB_Table_Name')
+LEADER_BOARD_TABLE_NAME = str(table_name_parameter['Parameter']['Value'])
 
 def lambda_handler(event, context):
     log_message = "New game event received!" + repr(event)
@@ -22,7 +26,7 @@ def lambda_handler(event, context):
         tier = message['tier']
         log_message = "Processing new game event for game: " + game_id 
         print(log_message)
-        response = table.query(KeyConditionExpression=(Key('session-id').eq(str(game_id))))
+        response = table.query(KeyConditionExpression=(Key('id').eq(str(game_id))))
         print(response)
         if 'Items' in response:
             items = response['Items']
@@ -31,9 +35,9 @@ def lambda_handler(event, context):
                 game_item = items[0]
                 if 'score' in game_item:
                     current_score = int(game_item['score'])
-                    nb_goals = int(game_item['nb_goals'])
-                    nb_tier1_shots = int(game_item['nb_tier1_shots'])
-                    nb_tier2_shots = int(game_item['nb_tier2_shots'])
+                    nb_goals = int(game_item['nbGoals'])
+                    nb_tier1_shots = int(game_item['nbTier1Shots'])
+                    nb_tier2_shots = int(game_item['nbTier2Shots'])
                 else:
                     current_score = 0
                     nb_tier1_shots = 0
@@ -47,8 +51,8 @@ def lambda_handler(event, context):
                     nb_tier2_shots += 1
                 current_score = nb_goals*int(GOAL_POINTS) + nb_tier1_shots*int(TIER1_POINTS) + nb_tier2_shots*int(TIER2_POINTS)
                 response = table.update_item(
-                    Key={'session-id': game_id},
-                    UpdateExpression="set score = :score, nb_goals = :nb_goals, nb_tier1_shots = :nb_tier1_shots, nb_tier2_shots = :nb_tier2_shots",
+                    Key={'id': game_id},
+                    UpdateExpression="set score = :score, nbGoals = :nb_goals, nbTier1Shots = :nb_tier1_shots, nbTier2Shots = :nb_tier2_shots",
                     ExpressionAttributeValues={
                         ':score': str(current_score), ':nb_goals': str(nb_goals), ':nb_tier1_shots':str(nb_tier1_shots), ':nb_tier2_shots':str(nb_tier2_shots)},
                     ReturnValues="UPDATED_NEW")
