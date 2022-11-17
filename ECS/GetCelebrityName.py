@@ -1,6 +1,7 @@
 import random
 import logging
 from flask import Flask
+from flask import jsonify
 
 # create logger
 logger = logging.getLogger('returncelebrityname')
@@ -24,6 +25,12 @@ celebrityName = ""
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
+
+@app.route('/healthcheck')
+def health_check():
+    response = jsonify({'message': "Health check executed."})
+    response.status_code = 200
+    return response
 
 @app.route('/')
 def GetCelebrityName():
