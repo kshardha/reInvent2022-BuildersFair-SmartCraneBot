@@ -28,7 +28,8 @@ def lambda_handler(event, context):
         payload=json.dumps(
             {
                 "type": "API",
-                "state": "LOCK"
+                "state": "LOCK",
+                "session_id" : str(session_id)
             }
         )
     )
@@ -37,7 +38,7 @@ def lambda_handler(event, context):
     response = dynamodb.update_item(
         TableName=ddb_table_name,
         Key={
-            'sessionID': {'S': session_id}
+            'id': {'S': session_id}
         },
         AttributeUpdates={
             'gameEndTime': {'Value': {'S': datetime.now().isoformat()}}
