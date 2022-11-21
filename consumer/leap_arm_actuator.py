@@ -44,7 +44,7 @@ ddb_table_name = str(leaderboard_ddb_table_name_parameter.get("Parameter").get("
 print("LeaderBoard Table Name: " + ddb_table_name)
 
 # Session ID of the current game in DDB table
-ddb_session_id = ""
+ddb_session_id = "" 
 attemptNumber = 0
 
 received_count = 0
@@ -331,11 +331,12 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
         if(state == "UNLOCK"):
             logging.info("Unlocking the arm")
             arm_state = True
+            update_ddb_table("Yes") # Current game flag
         elif(state == "LOCK"):
             arm_state = False
             logging.info("Locking the arm")
-            if(ddb_session_id != "" and attemptNumber != 0):
-                update_ddb_table("No")
+            if(ddb_session_id != "" or attemptNumber != 0):
+                update_ddb_table("No") # Current game flag
                 attemptNumber = 0 # Reset it for the next game
 
     if (iot_message_type == "LEAP"):
