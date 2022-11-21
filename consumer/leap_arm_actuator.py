@@ -8,6 +8,7 @@ from pathlib import Path
 import json
 from Arm_Lib import Arm_Device
 import logging
+import boto3
 
 home_dir = str(Path.home())
 
@@ -27,6 +28,25 @@ grab_dict = {
     "grab_count": 0
     }
 
+AWS_ACCESS_KEY = config['DEFAULT']['aws_access_key']
+AWS_SECRET_KEY = config['DEFAULT']['aws_secret_key']
+
+# AWS clients
+ps_client = boto3.client('ssm', aws_access_key_id = AWS_ACCESS_KEY, aws_secret_access_key = AWS_SECRET_KEY )
+dynamodb_client = boto3.client('dynamodb', aws_access_key_id = AWS_ACCESS_KEY, aws_secret_access_key = AWS_SECRET_KEY )
+
+# DDB Leaderboard table name
+leaderboard_ddb_table_name_parameter = ps_client.get_parameter(
+        Name='LeaderBoard_DDB_Table_Name'
+    )
+
+ddb_table_name = str(leaderboard_ddb_table_name_parameter.get("Parameter").get("Value"))
+print("LeaderBoard Table Name: " + ddb_table_name)
+
+# Session ID of the current game in DDB table
+ddb_session_id = "" 
+attemptNumber = 0
+
 received_count = 0
 received_all_event = threading.Event()
 
@@ -35,6 +55,26 @@ Arm = Arm_Device()
 
 # Arm lock/unlock state.
 arm_state = False # By default arm is in lock state
+
+# Update DynamoDB Table
+def update_ddb_table(isCurrentGame):
+    # Update DynamoDB table with Goal timestamp
+    global ddb_session_id
+    global attemptNumber
+
+    print("Attempt number: " + str(attemptNumber))
+    print("Current Game: " + str(isCurrentGame))
+
+    response = dynamodb_client.update_item(
+        TableName=ddb_table_name,
+        Key={
+            'id': {'S': ddb_session_id}
+        },
+        AttributeUpdates={
+            'attemptNumber': {'Value': {'S': str(attemptNumber)}},
+            'isCurrentGame': {'Value': {'S': str(isCurrentGame)}}
+        }
+    )
 
 # Move arm
 def actuate_arm(payload):
@@ -98,7 +138,7 @@ def actuate_arm(payload):
         # Hand up/down servo 2
         up_down_input_start = 170
         up_down_input_end = 400
-        up_down_output_start = 20
+        up_down_output_start = 40
         up_down_output_end = 90
         up_down_angle = calculate_output_angle(up_down, up_down_input_start, up_down_input_end, up_down_output_start, up_down_output_end)
 
@@ -154,7 +194,12 @@ def actuate_arm(payload):
                 return
 
     Arm.Arm_serial_servo_write6(left_right_angle, up_down_angle, fwd_bck1_angle, fwd_bck2_angle, 90, grab_angle, speed)
-
+    
+    # Update DDB table with attempt details
+    global attemptNumber
+    attemptNumber =  attemptNumber + 1
+    update_ddb_table("Yes")
+    
     # # Fist open/close servo 6
     # if grab == 0: # Open Fist
     #     grab_angle = 40
@@ -274,21 +319,34 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
     iot_message_type = payload.get('type') # from Leap or from API
     logging.info('Message received is of type: ' + iot_message_type)
 
+    # Actual Logic
+    global arm_state
+    global ddb_session_id
+    global attemptNumber
+        
     if(iot_message_type == "API"):
-        global arm_state
         state = payload.get('state') # LOCK or UNLOCK
+        ddb_session_id = payload.get('session_id') # Game session ID
+        logging.info("Game session ID: " + ddb_session_id)
         if(state == "UNLOCK"):
             logging.info("Unlocking the arm")
             arm_state = True
+            update_ddb_table("Yes") # Current game flag
         elif(state == "LOCK"):
             arm_state = False
             logging.info("Locking the arm")
+            if(ddb_session_id != "" or attemptNumber != 0):
+                update_ddb_table("No") # Current game flag
+                attemptNumber = 0 # Reset it for the next game
 
     if (iot_message_type == "LEAP"):
         if(arm_state):
             actuate_arm(payload)
         else:
             logging.info("Arm is locked")
+
+    # For testing
+    # actuate_arm(payload)
 
 if __name__ == '__main__':
     # Spin up resources
