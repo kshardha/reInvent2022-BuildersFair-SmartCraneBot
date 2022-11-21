@@ -21,6 +21,17 @@ def filter_detections(dets):
             maxScore = score
     return detection
 
+def filter_detections_highest_score(dets):
+    maxScore = 0
+    detection = None
+    for det in dets:
+        (klass, score, x0, y0, x1, y1) = det
+        if score > maxScore:
+            detection = det
+            maxScore = score
+    return detection
+
+
 def locally_call_endpoint(item):
     runtime = boto3.client(service_name="runtime.sagemaker")
     ep = "jitens-endpoint"
@@ -75,15 +86,18 @@ def save_to_dynamodb(item):
     )
     #print(response)
     
-    
+
+            
 def detect_goal(game_id, detection):
     #TODO: shot attempt id to be implemented
     #print (detection)
     print("calling analyze_shot")
     dynamodb_resource=boto3.resource('dynamodb')
-    shot_detect = detect_start_of_shot(game_id=game_id, detection_data=detection, dynamodb_resource=dynamodb_resource)
-    if 'current_shot_id' in shot_detect:
-        analyze_shot_frame(game_id=game_id, shot_attempt_id=shot_detect['current_shot_id'], detection_data=detection, dynamodb_resource=boto3.resource('dynamodb'))
+    #shot_detect = detect_start_of_shot(game_id=game_id, detection_data=detection, dynamodb_resource=dynamodb_resource)
+    #shot_detect['current_shot_id'] ='jiten-is-testing'
+    #if 'current_shot_id' in shot_detect:
+    #   analyze_shot_frame(game_id=game_id, shot_attempt_id=shot_detect['current_shot_id'], detection_data=detection, dynamodb_resource=boto3.resource('dynamodb'))
+    analyze_shot_frame(game_id=game_id, shot_attempt_id='default', detection_data=detection, dynamodb_resource=boto3.resource('dynamodb'))
 
 def do_additional_analytics(detection):
     #Narcisse to implement
@@ -98,13 +112,13 @@ def lambda_handler(event, context):
     gameid = event['gameid']
     counter = str(event['counter'])
     print("Gameid:", gameid, " Counter:", counter, " Time:", timeStr)
-    gameid="dZJpgGZSUwUIRXolqStv831o6"
+    #gameid="dZJpgGZSUwUIRXolqStv831o6"
     #print("time:", timeStr)
     #print("image:", imageStr)
     imagebytes = base64.b64decode(imageStr)
     detection = locally_call_endpoint(imagebytes)
-    if detection is not None:
-        item = create_detection_item(event, timeStr, detection)
+    item = create_detection_item(event, timeStr, detection)
+    if item is not None:
         detect_goal(gameid, item)
         do_additional_analytics(detection)
         save_to_dynamodb(item)

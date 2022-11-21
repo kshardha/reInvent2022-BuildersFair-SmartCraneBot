@@ -1,10 +1,10 @@
 import boto3
 import json
 
-GOAL_BOUNDING_BOX='goal_bounding_box:2'
-TIER1_BOUNDING_BOX='tier1_bounding_box:2'
-TIER2_BOUNDING_BOX='tier2_bounding_box:2'
-IMAGE_DIMENSIONS='image_dimensions:2'
+GOAL_BOUNDING_BOX='goal_bounding_box'
+TIER1_BOUNDING_BOX='tier1_bounding_box'
+TIER2_BOUNDING_BOX='tier2_bounding_box'
+IMAGE_DIMENSIONS='image_dimensions'
 SHOT_START_Y_THRESHOLD='shot_start_y_threshold'
 
 local_cache = {}
