@@ -11,7 +11,7 @@ TIER2_POINTS = os.environ['TIER2_POINTS']
 
 dynamodb_resource = boto3.resource('dynamodb')
 table = dynamodb_resource.Table(LEADER_BOARD_TABLE_NAME)
-ssm = boto3.session.client('ssm')
+ssm = boto3.client('ssm')
 
 table_name_parameter = ssm.get_parameter(Name='LeaderBoard_DDB_Table_Name')
 LEADER_BOARD_TABLE_NAME = str(table_name_parameter['Parameter']['Value'])
@@ -33,18 +33,28 @@ def lambda_handler(event, context):
             if len(items)>0:
                 items = response['Items']
                 game_item = items[0]
+                current_score = 0
+                nb_tier1_shots = 0
+                nb_tier2_shots = 0
+                nb_goals = 0
+                
                 if 'score' in game_item:
                     current_score = int(game_item['score'])
                     nb_goals = int(game_item['nbGoals'])
-                    nb_tier1_shots = int(game_item['nbTier1Shots'])
-                    nb_tier2_shots = int(game_item['nbTier2Shots'])
-                else:
-                    current_score = 0
-                    nb_tier1_shots = 0
-                    nb_tier2_shots = 0
-                    nb_goals = 0
+                    if 'nbTier1' in game_item:
+                        nb_tier1_shots = int(game_item['nbTier1'])
+                    
+                    if 'nbTier2' in game_item:
+                        nb_tier2_shots = int(game_item['nbTier2'])
+                
                 if tier == 'GOAL':
+                    currGoalTime = message['start_time']
                     nb_goals += 1
+                    if 'goalTimes' in game_item:
+                        goalTimes = json.loads(game_item['goalTimes'])
+                    else:
+                        goalTimes = {}
+                    goalTimes[str(nb_goals)] = currGoalTime
                 elif tier == '1':
                     nb_tier1_shots += 1
                 elif tier == '2':
@@ -52,9 +62,11 @@ def lambda_handler(event, context):
                 current_score = nb_goals*int(GOAL_POINTS) + nb_tier1_shots*int(TIER1_POINTS) + nb_tier2_shots*int(TIER2_POINTS)
                 response = table.update_item(
                     Key={'id': game_id},
-                    UpdateExpression="set score = :score, nbGoals = :nb_goals, nbTier1Shots = :nb_tier1_shots, nbTier2Shots = :nb_tier2_shots",
+                    UpdateExpression="set score = :score, nbGoals = :nb_goals, nbTier1 = :nb_tier1_shots, nbTier = :nb_tier2_shots, goalTimes = :goalTimes",
                     ExpressionAttributeValues={
-                        ':score': str(current_score), ':nb_goals': str(nb_goals), ':nb_tier1_shots':str(nb_tier1_shots), ':nb_tier2_shots':str(nb_tier2_shots)},
+                        ':score': str(current_score), ':nb_goals': str(nb_goals), ':nb_tier1_shots':str(nb_tier1_shots), ':nb_tier2_shots':str(nb_tier2_shots), ':goalTimes':json.dumps(goalTimes)
+                        
+                    },
                     ReturnValues="UPDATED_NEW")
     
                 log_message = "Successfully updated session:" + game_id
