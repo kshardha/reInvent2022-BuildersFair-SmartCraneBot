@@ -36,6 +36,8 @@ class TextScroller:
             self.process = Popen(self.command)
             if self.timeout>0:
                 self.process.wait(self.timeout)
+            else:
+                self.process.wait()
         except TimeoutExpired as exp:
             self.process.kill()
         except Exception as ex:
@@ -52,8 +54,8 @@ class TextScroller:
         return self.process
 
     def run(self):
-        th = th.Thread(target=self.start_scroll_text, args=[])
-        th.start()
+        t = th.Thread(target=self.start_scroll_text, args=[])
+        t.start()
 
 
 # Callback when connection is accidentally lost.
@@ -85,10 +87,11 @@ def on_resubscribe_complete(resubscribe_future):
 # Callback when the subscribed topic receives a message
 def on_message_received(topic, payload, dup, qos, retain, **kwargs):
     print("Received message from topic '{}': {}".format(topic, payload))
-    current_scroller.start_scroll_text()
+    global current_scroller
+    current_scroller.stop_scroll_text()
 
-    goal_scroller = TextScroller(GOAL_CMD, "goal", 5)
-    goal_scroller.run()
+    #goal_scroller = TextScroller(GOAL_CMD, "goal", 5)
+    #goal_scroller.start_scroll_text()
 
     current_scroller = TextScroller(WELCOME_CMD, "welcome")
     current_scroller.run()
@@ -149,3 +152,5 @@ if __name__ == '__main__':
     init_mqtt()
 
     
+
+
