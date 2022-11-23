@@ -88,6 +88,9 @@ def update_ddb_table(isCurrentGame, updateScore):
                 ':newscore': {'N': str(5)}
             }
         )
+# Move arm to the some position
+def move_arm(left_right, up_down, fwd_back_1, fwd_back_2, grab, speed):
+    Arm.Arm_serial_servo_write6(left_right, up_down, fwd_back_1, fwd_back_2, 90, grab, speed)
 
 # Move arm
 def actuate_arm(payload):
@@ -173,10 +176,12 @@ def actuate_arm(payload):
         grab_angle = 110
         if grab_dict['old_grab'] is False:
             Arm.Arm_serial_servo_write(6, grab_angle, 400)
+
             # Update DDB table with attempt details
             global attemptNumber
             attemptNumber =  attemptNumber + 1
             update_ddb_table("Yes", True)
+            
             grab_dict["old_grab"] = True
             # Arm.Arm_serial_servo_write6(left_right_angle, up_down_angle, fwd_bck1_angle, fwd_bck2_angle, 90, grab_angle, speed)
             print(grab_dict['old_grab'])
@@ -211,11 +216,6 @@ def actuate_arm(payload):
                 return
 
     Arm.Arm_serial_servo_write6(left_right_angle, up_down_angle, fwd_bck1_angle, fwd_bck2_angle, 90, grab_angle, speed)
-    
-    # # Update DDB table with attempt details
-    # global attemptNumber
-    # attemptNumber =  attemptNumber + 1
-    # update_ddb_table("Yes", True)
     
     # # Fist open/close servo 6
     # if grab == 0: # Open Fist
@@ -350,8 +350,10 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
             arm_state = True
             update_ddb_table("Yes", True) # Current game flag
         elif(state == "LOCK"):
-            arm_state = False
+            # Move arm to its initial state for the next round
+            move_arm(90,45,50,20,90,300)
             logging.info("Locking the arm")
+            arm_state = False
             if(ddb_session_id != "" or attemptNumber != 1):
                 update_ddb_table("No", False) # Current game flag
                 attemptNumber = 1 # Reset it for the next game
@@ -364,6 +366,7 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
 
     # For testing
     # actuate_arm(payload)
+    # move_arm(90,45,50,20,90,300)
 
 if __name__ == '__main__':
     # Spin up resources
@@ -403,6 +406,8 @@ if __name__ == '__main__':
     subscribe_result = subscribe_future.result()
     print("Subscribed with {}".format(str(subscribe_result['qos'])))
 
+    # Move arm to its initial state to begin with
+    move_arm(90,45,50,20,90,300)
 
     # Keep this process running until Enter is pressed
     print("Press Enter to quit...")
@@ -410,10 +415,10 @@ if __name__ == '__main__':
 
     # Wait for all messages to be received.
     # This waits forever if count was set to 0.
-    if MSG_SUB_COUNT != 0 and not received_all_event.is_set():
-        print("Waiting for all messages to be received...")
+    #if MSG_SUB_COUNT != 0 and not received_all_event.is_set():
+    #    print("Waiting for all messages to be received...")
 
-    received_all_event.wait()
+    # received_all_event.wait()
     print("{} message(s) received.".format(received_count))
 
     # Disconnect
