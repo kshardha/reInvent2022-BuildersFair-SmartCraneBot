@@ -173,6 +173,10 @@ def actuate_arm(payload):
         grab_angle = 110
         if grab_dict['old_grab'] is False:
             Arm.Arm_serial_servo_write(6, grab_angle, 400)
+            # Update DDB table with attempt details
+            global attemptNumber
+            attemptNumber =  attemptNumber + 1
+            update_ddb_table("Yes", True)
             grab_dict["old_grab"] = True
             # Arm.Arm_serial_servo_write6(left_right_angle, up_down_angle, fwd_bck1_angle, fwd_bck2_angle, 90, grab_angle, speed)
             print(grab_dict['old_grab'])
@@ -208,10 +212,10 @@ def actuate_arm(payload):
 
     Arm.Arm_serial_servo_write6(left_right_angle, up_down_angle, fwd_bck1_angle, fwd_bck2_angle, 90, grab_angle, speed)
     
-    # Update DDB table with attempt details
-    global attemptNumber
-    attemptNumber =  attemptNumber + 1
-    update_ddb_table("Yes", True)
+    # # Update DDB table with attempt details
+    # global attemptNumber
+    # attemptNumber =  attemptNumber + 1
+    # update_ddb_table("Yes", True)
     
     # # Fist open/close servo 6
     # if grab == 0: # Open Fist
