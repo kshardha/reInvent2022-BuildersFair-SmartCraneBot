@@ -45,7 +45,7 @@ print("LeaderBoard Table Name: " + ddb_table_name)
 
 # Session ID of the current game in DDB table
 ddb_session_id = "" 
-attemptNumber = 0
+attemptNumber = 1
 
 received_count = 0
 received_all_event = threading.Event()
@@ -68,11 +68,23 @@ def update_ddb_table(isCurrentGame):
     response = dynamodb_client.update_item(
         TableName=ddb_table_name,
         Key={
-            'id': {'S': ddb_session_id}
+            'id': {'S': ddb_session_id} # 'id': {'S': 'AKn5Sve456caOFTt6REl5OUnU'} 
         },
         AttributeUpdates={
-            'attemptNumber': {'Value': {'S': str(attemptNumber)}},
+            'attemptNumber': {'Value': {'N': str(attemptNumber)}},
             'isCurrentGame': {'Value': {'S': str(isCurrentGame)}}
+        }
+    )
+
+    # Award score for each attempt
+    response = dynamodb_client.update_item(
+        TableName=ddb_table_name,
+        Key={
+            'id': {'S': ddb_session_id} # 'id': {'S': 'AKn5Sve456caOFTt6REl5OUnU'}
+        },
+        UpdateExpression='ADD score :newscore',
+        ExpressionAttributeValues={
+            ':newscore': {'N': str(5)}
         }
     )
 
@@ -335,9 +347,9 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
         elif(state == "LOCK"):
             arm_state = False
             logging.info("Locking the arm")
-            if(ddb_session_id != "" or attemptNumber != 0):
+            if(ddb_session_id != "" or attemptNumber != 1):
                 update_ddb_table("No") # Current game flag
-                attemptNumber = 0 # Reset it for the next game
+                attemptNumber = 1 # Reset it for the next game
 
     if (iot_message_type == "LEAP"):
         if(arm_state):
