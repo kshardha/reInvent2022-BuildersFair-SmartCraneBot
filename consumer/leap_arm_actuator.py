@@ -57,13 +57,14 @@ Arm = Arm_Device()
 arm_state = False # By default arm is in lock state
 
 # Update DynamoDB Table
-def update_ddb_table(isCurrentGame):
+def update_ddb_table(isCurrentGame, updateScore):
     # Update DynamoDB table with Goal timestamp
     global ddb_session_id
     global attemptNumber
 
     print("Attempt number: " + str(attemptNumber))
     print("Current Game: " + str(isCurrentGame))
+    print("Update Attempt Score: " + str(updateScore))
 
     response = dynamodb_client.update_item(
         TableName=ddb_table_name,
@@ -75,18 +76,18 @@ def update_ddb_table(isCurrentGame):
             'isCurrentGame': {'Value': {'S': str(isCurrentGame)}}
         }
     )
-
     # Award score for each attempt
-    response = dynamodb_client.update_item(
-        TableName=ddb_table_name,
-        Key={
-            'id': {'S': ddb_session_id} # 'id': {'S': 'AKn5Sve456caOFTt6REl5OUnU'}
-        },
-        UpdateExpression='ADD score :newscore',
-        ExpressionAttributeValues={
-            ':newscore': {'N': str(5)}
-        }
-    )
+    if(updateScore):
+        response = dynamodb_client.update_item(
+            TableName=ddb_table_name,
+            Key={
+                'id': {'S': ddb_session_id} # 'id': {'S': 'AKn5Sve456caOFTt6REl5OUnU'}
+            },
+            UpdateExpression='ADD score :newscore',
+            ExpressionAttributeValues={
+                ':newscore': {'N': str(5)}
+            }
+        )
 
 # Move arm
 def actuate_arm(payload):
@@ -210,7 +211,7 @@ def actuate_arm(payload):
     # Update DDB table with attempt details
     global attemptNumber
     attemptNumber =  attemptNumber + 1
-    update_ddb_table("Yes")
+    update_ddb_table("Yes", True)
     
     # # Fist open/close servo 6
     # if grab == 0: # Open Fist
@@ -343,12 +344,12 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
         if(state == "UNLOCK"):
             logging.info("Unlocking the arm")
             arm_state = True
-            update_ddb_table("Yes") # Current game flag
+            update_ddb_table("Yes", True) # Current game flag
         elif(state == "LOCK"):
             arm_state = False
             logging.info("Locking the arm")
             if(ddb_session_id != "" or attemptNumber != 1):
-                update_ddb_table("No") # Current game flag
+                update_ddb_table("No", False) # Current game flag
                 attemptNumber = 1 # Reset it for the next game
 
     if (iot_message_type == "LEAP"):
