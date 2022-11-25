@@ -9,8 +9,8 @@ import json
 import os
 
 DISPLAY_DELAY = 10
-GOAL_CMD = ["./demo", "--led-rows=32", "--led-cols=64", "-D1", "./goal.ppm"]
-WELCOME_CMD = ["./demo", "--led-rows=32", "--led-cols=64", "-D1", "./welcome.ppm"]
+GOAL_CMD = ["./demo", "--led-rows=32", "--led-cols=128", "-D1", "./goal.ppm"]
+WELCOME_CMD = ["./demo", "--led-rows=32", "--led-cols=128", "-D1", "./welcome_text_logo.ppm"]
 
 
 received_all_event = th.Event()
@@ -22,8 +22,8 @@ private_key_filepath = './iot-certs/537e39a5eac3eaf6e983f59216453ab67926efc41a6d
 ca_filepath = './iot-certs/AmazonRootCA1.pem'
 
 pub_topic = 'device/{}/data'.format(thing_name)
-sub_topic = 'app/data'
-
+sub_topic = 'cranebot2022/ledmatrix'
+is_goal_scored = False
 
 class TextScroller:
     def __init__(self,command, text_ppm_file, timeout=-1):
@@ -52,6 +52,9 @@ class TextScroller:
 
     def process(self):
         return self.process
+    
+    def wait(self):
+        return self.process.wait()
 
     def run(self):
         t = th.Thread(target=self.start_scroll_text, args=[])
@@ -88,13 +91,16 @@ def on_resubscribe_complete(resubscribe_future):
 def on_message_received(topic, payload, dup, qos, retain, **kwargs):
     print("Received message from topic '{}': {}".format(topic, payload))
     global current_scroller
+    global is_goal_scored
+    
+    is_goal_scored = True
     current_scroller.stop_scroll_text()
 
     #goal_scroller = TextScroller(GOAL_CMD, "goal", 5)
     #goal_scroller.start_scroll_text()
 
-    current_scroller = TextScroller(WELCOME_CMD, "welcome")
-    current_scroller.run()
+    #current_scroller = TextScroller(WELCOME_CMD, "welcome")
+    #current_scroller.run()
 
 def init_mqtt():
     # Spin up resources
@@ -147,10 +153,15 @@ def init_mqtt():
 
 if __name__ == '__main__':
     global current_scroller
-    current_scroller = TextScroller(WELCOME_CMD, "welcome")
-    current_scroller.run()
     init_mqtt()
-
+    while True:
+        if is_goal_scored:
+            goal_scroller = TextScroller(GOAL_CMD, "goal", 10)
+            goal_scroller.start_scroll_text()
+            is_goal_scored = False 
+        
+        current_scroller = TextScroller(WELCOME_CMD, "welcome")
+        current_scroller.start_scroll_text()
     
 
 
