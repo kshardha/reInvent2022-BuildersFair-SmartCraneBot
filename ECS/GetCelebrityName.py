@@ -15,7 +15,15 @@ mainNameList = ['Tom Cruise', 'Brad Pitt','Michael Jordan', 'Tom Hanks', 'Johnny
 'Gandalf', 'Han Solo', 'The Terminator', 'Luke Skywalker', 'Sarah Connor', 'Buzz Lightyear', 'Godfather' ,'Forest Gump','Rocky Balboa', 'Jason Bourne',
 'Jack Sparrow', 'John Wick', 'Saul Goodman' , 'Sheldon Cooper', 'Lucifer Morningstar', 'Harry Potter', 'Super-Man' ,'Spider-Man', 'Doctor Strange',
 'Tony Montana', 'Sherlock Holmes', 'Neo', 'Optimus Prime', 'Inspector Clouseau', 'Groot', 'Ethan Hunt', 'Captain Kirk', 'Ace Ventura',
-'Captain America','Loki', 'Thor', 'Iron Man', 'The Dude', 'James Bond']
+'Captain America','Loki', 'Thor', 'Iron Man', 'The Dude', 'James Bond', 'Lionel Messi',
+'Cristiano Ronaldo', 'Xavi', 'Andres Iniesta', 'Zlatan Ibrahimovic','Radamel Falcao',
+'Neymar', 'Thiago Silva', 'Karim Benzema', 'Radamel Falcao', 'Robin van Persie', 'Andrea Pirlo',
+'Yaya Toure', 'Edinson Cavani', 'Sergio Aguero', 'Iker Casillas', 'David Beckham', 'Diego Maradona',
+'Kaka', 'Ronaldinho', 'Ronaldo', 'Zinedine Zidane', 'Agent J', 'Spock', 'Wolverine', 'Yoda', 'Bruce Lee',
+'King Julien XIII','Minion', 'Mufasa', 'Nemo', 'Rambo', 'Robocop', 'Shrek', 'Mort', 'Marty', 'Alex The Lion', 'Private',
+'Maurice', 'Kowalski', 'Fossa', 'Skipper', 'Abu', 'Aladdin', 'Ariel', 'Bagheera', 'Baloo', 'Captain Hook',
+'Pinocchio', 'Genie', 'Hercules', 'Moana', 'Mowgli', 'Olaf', 'Rajah', 'Rapunzel', 'Shere Khan',
+'Simba', 'Winnie the Pooh', 'Tinker Bell','Hannibal Lecter', 'Agent Smith', 'Hans Landa', 'The Joker'   ]
 
 nameList1 = mainNameList[:]
 nameList2 = []
