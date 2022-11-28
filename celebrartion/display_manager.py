@@ -1,4 +1,5 @@
 from subprocess import Popen, TimeoutExpired
+from threading import Thread
 import time
 from awscrt import io, mqtt, auth, http
 from awsiot import mqtt_connection_builder
@@ -7,13 +8,12 @@ import threading as th
 import time
 import json
 import os
+from pygame import mixer
 
 DISPLAY_DELAY = 10
 GOAL_CMD = ["./demo", "--led-rows=32", "--led-cols=128", "-D1", "./goal.ppm"]
 WELCOME_CMD = ["./demo", "--led-rows=32", "--led-cols=128", "-D1", "./welcome_text_logo.ppm"]
-
-
-received_all_event = th.Event()
+GOAL_TRACK = './cheerSfx.mp3'
 
 target_ep = 'abpraz52fkm0l-ats.iot.us-west-2.amazonaws.com'
 thing_name = 'that_thang'
@@ -95,12 +95,20 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
     
     is_goal_scored = True
     current_scroller.stop_scroll_text()
-
+    player = Thread(target=play_sound, args=[])
+    player.start()
+    
     #goal_scroller = TextScroller(GOAL_CMD, "goal", 5)
     #goal_scroller.start_scroll_text()
 
     #current_scroller = TextScroller(WELCOME_CMD, "welcome")
     #current_scroller.run()
+
+def play_sound():
+    mixer.music.play()
+    time.sleep(10)
+    mixer.music.stop()
+    
 
 def init_mqtt():
     # Spin up resources
@@ -154,6 +162,9 @@ def init_mqtt():
 if __name__ == '__main__':
     global current_scroller
     init_mqtt()
+    mixer.init()
+    mixer.music.load(GOAL_TRACK)
+    
     while True:
         if is_goal_scored:
             goal_scroller = TextScroller(GOAL_CMD, "goal", 10)
