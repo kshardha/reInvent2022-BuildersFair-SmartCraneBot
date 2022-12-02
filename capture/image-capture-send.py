@@ -13,26 +13,27 @@ import image_mqtt_sender;
 
 
 #####Supply Values for these##########
+CA_FILE="<ca file>"
+CERT_FILE="<cert file>"
+KEY_FILE="<key file>"
 AWS_ACCESS_KEY_ID="<put values here>"
 AWS_SECRET_ACCESS_KEY="<put values here>"
-AWS_SESSION_TOKEN="<put values here>"
-BALL_MIN = np.array([10, 20, 20]) # hsv color for ball min - need to tweak this for the ball color
-BALL_MAX = np.array([25, 255, 255]) #hsv color for ball max - need to tweak this for the ball color
+#AWS_SESSION_TOKEN="<put values here>"
+AWS_REGION_NAME='<put values here>'
 
-WEBCAM_ID=0 #if you have multiple webcam you may need to change this number.
+WRITE_FILE_FOR_DEBUG=False
 
+FILE_DIR='<put values here>'
+# if you have more than 1 webcam then change values here.
+WEBCAM_ID=0
+#debugging/local file generation.
+shot_tier_bounding_box = {"x1": 195, "y1": 80, "x2": 265, "y2": 160}
 
 #####Default values for parameters (tweak only if needed)#######
-AWS_REGION_NAME='us-west-2'
-
-CA_FILE="./iot-certs/AmazonRootCA1.pem"
-CERT_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-certificate.pem.crt"
-KEY_FILE="./iot-certs/dffe0feda088baf048a5a2da3bf26ddbaa52e72416f0a69f5b1a3d37fd19e03f-private.pem.key"
-
 UPLOAD_BATCH_SIZE=50 # Number of parallel threads to create to upload the images to mqtt
 FRAME_RATE=30 # Approximate capture frame rate
 MQTT_TOPIC="cranebot"
-IOT_ENDPOINT="abpraz52fkm0l-ats.iot.us-west-2.amazonaws.com"
+IOT_ENDPOINT="<iot endpoint>"
 LOCALLY_CALL_DETECTION=False #For debugging by directly calling the detection endpoint
 SEND_MQTT_MESSAGE=True # Keep this true to send messages to MQTT topic
 DETECTION_THRESHOLD=0.3 # Not used for MQTT. Used only for Local call detection. Dont send images to detection if not meets threshold
@@ -43,17 +44,39 @@ DETECTION_THRESHOLD=0.3 # Not used for MQTT. Used only for Local call detection.
 def process_image(frame, gameid, counter):
     imagehsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
+    #attempt 2 for blue ball
+    BALL_MIN = np.array([81, 32, 50])
+    BALL_MAX = np.array([105, 255, 255])
+
+
+    #Yellow ball
+    #BALL_MIN = np.array([30, 0, 0])
+    #BALL_MAX = np.array([60, 255, 255])
+
+    # ping pong ball
+    #BALL_MIN = np.array([10, 20, 20])
+    #BALL_MAX = np.array([25, 255, 255])
+
+
+    #ORANGE_MIN = np.array([5, 50, 50])
+    #ORANGE_MAX = np.array([15, 255, 255])
+
     # masking the HSV image to get only black colors
     imagemask = cv2.inRange(imagehsv, BALL_MIN, BALL_MAX)
 
-    filename="c:\\test\cranebot\\img-low-moving_ball_10_18_4\\"+str(gameid)+"_"+str(counter)+".jpg"
-    orig_filename = "c:\\test\cranebot\\img-low-moving_ball_10_18_4\\"+str(gameid)+"_"+ str(counter) + "_orig.jpg"
-    hsv_filename = "c:\\test\cranebot\\img-low-moving_ball_10_18_4\\" +str(gameid)+"_"+ str(counter) + "_hsv.jpg"
-
-    cv2.imwrite(filename=orig_filename, img=frame)
-    cv2.imwrite(filename=filename, img=imagemask)
-    cv2.imwrite(filename=hsv_filename, img=imagehsv)
-
+    filename=FILE_DIR+"\\"+str(gameid)+"_"+str(counter)+".jpg"
+    orig_filename = FILE_DIR+"\\"+str(gameid)+"_"+ str(counter) + "_orig.jpg"
+    hsv_filename = FILE_DIR+"\\" +str(gameid)+"_"+ str(counter) + "_hsv.jpg"
+    
+    cv2.rectangle(frame, (shot_tier_bounding_box['x1'],shot_tier_bounding_box['y1']),
+                 (shot_tier_bounding_box['x2'], shot_tier_bounding_box['y2']), (0, 0, 255), 2)
+	
+	if (WRITE_FILE_FOR_DEBUG):
+		cv2.imwrite(filename=orig_filename, img=frame)
+		cv2.imwrite(filename=filename, img=imagemask)
+		cv2.imwrite(filename=hsv_filename, img=imagehsv)
+    #Not using HSV at the moment.
+	imagemask = frame
     hasFrame, imageBytes = cv2.imencode(".jpg", imagemask)
     return imageBytes
 
@@ -68,14 +91,10 @@ def filter_detections(dets):
     return detection
 
 def locally_call_endpoint(item):
-    # url = 'https://rv3tl2tjhl.execute-api.us-east-1.amazonaws.com/prod/rekognition_video_ball_detection?filename=' + filename
-    # bytes = item
-    # b64Str = base64.b64encode(bytes)
-    # x = requests.post(url, b64Str)
     runtime = boto3.client(service_name="runtime.sagemaker",
                            aws_access_key_id=AWS_ACCESS_KEY_ID,
                            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                           aws_session_token=AWS_SESSION_TOKEN,
+                           #aws_session_token=AWS_SESSION_TOKEN,
                            region_name=AWS_REGION_NAME)
     # ep = "object-detection-2022-10-06-14-28-42-684"
     ep = "jitens-endpoint"
@@ -119,6 +138,7 @@ def upload_images(queue):
     # all done
     print('Consumer: Done')
 
+
 def capture_images(queue):
     webcam = cv2.VideoCapture(WEBCAM_ID, cv2.CAP_DSHOW)
     webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
@@ -144,9 +164,6 @@ def capture_images(queue):
             queue.put(queueItem)
             print("current queue size", queue.qsize())
             i = i + 1
-            ##debugging purpose. stop capture after 300 images.
-            #if (i > 300):
-            #    break
             time.sleep(1/FRAME_RATE)
         except Exception as e:
             print(e)
@@ -168,5 +185,5 @@ for i in range (0, UPLOAD_BATCH_SIZE):
 producer = Thread(target=capture_images, args=(image_queue,))
 producer.start()
 # wait for all threads to finish
-#producer.join()
-#consumer.join()
+producer.join()
+consumer.join()
