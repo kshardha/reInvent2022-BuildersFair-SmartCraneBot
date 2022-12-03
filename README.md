@@ -1,2 +1,2 @@
-# reinvent2022-buildersfair-proj
-Repo for hosting code artifacts for reInvent 2022 Builders' Fair project
+# reinvent2022 Builders' Fair - Smart CraneBot Games
+Repo for hosting code artifacts for reinvent2022 Builders' Fair - Smart CraneBot Games
